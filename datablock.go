@@ -8,34 +8,36 @@ import (
 )
 
 // Block represents a block in the blockchain
-type Block struct {
+type DataBlock struct {
 	Timestamp     int64
-	Transactions  []*Transaction
+	Transactions  []*DataTransaction
 	PrevBlockHash []byte
 	Hash          []byte
-	Nonce         int
+	Sign          []byte
+	Author        []byte
 	Height        int
 }
 
 // NewBlock creates and returns Block
-func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int) *Block {
-	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0, height}
-	pow := NewProofOfWork(block)
-	nonce, hash := pow.Run()
+func NewDataBlock(transactions []*DataTransaction, prevBlockHash []byte, height int, privKey ecdsa.PrivateKey, author []byte) *DataBlock {
+	block := &DataBlock{time.Now().Unix(), transactions, prevBlockHash, []byte{}, []byte{}, []byte{}, height}
+	//pow := NewProofOfWork(block)
+	//nonce, hash := pow.Run()
+	HashDataBlock(block, privKey)
 
 	block.Hash = hash[:]
-	block.Nonce = nonce
+	block.Author = author[:]
 
 	return block
 }
 
 // NewGenesisBlock creates and returns genesis Block
-func NewGenesisBlock(coinbase *Transaction) *Block {
-	return NewBlock([]*Transaction{coinbase}, []byte{}, 0)
+func NewGenesisDataBlock(privKey ecdsa.PrivateKey, author []byte) *DataBlock {
+	return NewBlock([]*DataTransaction{}, []byte{}, 0, privKey, author)
 }
 
 // HashTransactions returns a hash of the transactions in the block
-func (b *Block) HashTransactions() []byte {
+func (b *DataBlock) HashTransactions() []byte {
 	var transactions [][]byte
 
 	for _, tx := range b.Transactions {
@@ -47,7 +49,7 @@ func (b *Block) HashTransactions() []byte {
 }
 
 // Serialize serializes the block
-func (b *Block) Serialize() []byte {
+func (b *DataBlock) Serialize() []byte {
 	var result bytes.Buffer
 	encoder := gob.NewEncoder(&result)
 
@@ -60,8 +62,8 @@ func (b *Block) Serialize() []byte {
 }
 
 // DeserializeBlock deserializes a block
-func DeserializeBlock(d []byte) *Block {
-	var block Block
+func DeserializeDataBlock(d []byte) *DataBlock {
+	var block DataBlock
 
 	decoder := gob.NewDecoder(bytes.NewReader(d))
 	err := decoder.Decode(&block)
